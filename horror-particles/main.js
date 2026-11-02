@@ -1,7 +1,7 @@
 /**
  * ASTRAL HORROR // Main Application Controller
  * Handles user interactions, click-to-summon shockwaves,
- * entity pill navigation, keyboard shortcuts, and HUD updates.
+ * scary keypress jumpscare actions, entity pill navigation, and HUD updates.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pill.className = `entity-pill ${index === 0 ? 'active' : ''}`;
     pill.innerText = ent.name;
     pill.addEventListener('click', (e) => {
-      e.stopPropagation(); // don't trigger general canvas click
+      e.stopPropagation();
       switchToEntity(index, true);
     });
     pillsContainer.appendChild(pill);
@@ -44,8 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Update pulse state text
-    const pulseModes = ['TERROR', 'DREAD', 'AGONY', 'PARALYSIS', 'VOID', 'CORRUPT', 'CHAOS'];
+    const pulseModes = ['TERROR', 'DREAD', 'AGONY', 'PARALYSIS', 'VOID', 'CORRUPT', 'CHAOS', 'NIGHTMARE', 'POSSESSED', 'ABYSS'];
     pulseDisplay.innerText = pulseModes[index % pulseModes.length];
   }
 
@@ -55,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateHUD(newEntity, engine.currentEntityIndex);
 
-    // Audio stinger & dread blast
     if (window.horrorAudio) {
       window.horrorAudio.triggerHorrorStinger(fromPill ? 0.8 : 1.0);
     }
@@ -71,10 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
       window.horrorAudio.resume();
     }
 
-    // Initial eerie stinger welcome
     setTimeout(() => {
       if (window.horrorAudio) {
-        window.horrorAudio.triggerHorrorStinger(0.6);
+        window.horrorAudio.triggerHorrorStinger(0.6, 'screech');
       }
     }, 400);
   });
@@ -86,10 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target.closest('#hud') || e.target.closest('#audio-modal')) return;
     }
 
-    // Trigger explosive shockwave at click position
     engine.triggerClickExplosion(e.clientX, e.clientY);
-
-    // Morph to next horrifying creature
     switchToEntity();
   });
 
@@ -133,24 +127,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 8. Keyboard Shortcuts
+  // 8. Scary Actions, Audio Stinger & Glitch VFX on ANY KEYPRESS
   window.addEventListener('keydown', (e) => {
-    if (!experienceStarted) return;
+    if (!experienceStarted) {
+      btnEnter.click();
+      return;
+    }
 
-    if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'Enter') {
-      e.preventDefault();
-      engine.triggerClickExplosion(window.innerWidth / 2, window.innerHeight / 2);
-      switchToEntity();
-    } else if (e.code === 'KeyM') {
+    // Trigger scary VFX: camera lunge, screen invert glitch, shockwave explosion
+    engine.triggerScaryJumpscare(1.0);
+
+    // Audio SFX: Play a visceral procedural horror stinger
+    if (window.horrorAudio) {
+      const stingers = ['bassDrop', 'screech', 'boneCrack', 'ghostGasp', 'abyssalMoan'];
+      const picked = stingers[Math.floor(Math.random() * stingers.length)];
+      window.horrorAudio.triggerHorrorStinger(1.1, picked);
+    }
+
+    // Specific key controls
+    if (e.code === 'KeyM') {
       btnSound.click();
     } else if (e.code === 'KeyF') {
       btnFullscreen.click();
-    } else if (e.key >= '1' && e.key <= '7') {
+    } else if (e.key >= '1' && e.key <= '9') {
       const idx = parseInt(e.key) - 1;
       if (idx < engine.entities.length) {
-        engine.triggerClickExplosion(window.innerWidth / 2, window.innerHeight / 2);
         switchToEntity(idx, true);
       }
+    } else {
+      // Space, Enter, or any letter/arrow morphs to next terrifying nightmare
+      switchToEntity();
     }
   });
 });

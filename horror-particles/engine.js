@@ -41,11 +41,14 @@ class HorrorParticleEngine {
     // Glitch burst state
     this.glitchIntensity = 0.0;
 
+    // Camera shake & jumpscare lunge state
+    this.shakeIntensity = 0.0;
+    this.lungeZ = 0.0;
+
     this.init();
   }
 
   init() {
-    // 1. Scene & Camera
     this.scene = new THREE.Scene();
     this.scene.fog = new THREE.FogExp2(0x030305, 0.00075);
 
@@ -53,47 +56,36 @@ class HorrorParticleEngine {
     this.camera = new THREE.PerspectiveCamera(50, aspect, 1, 6000);
     this.camera.position.set(0, 0, 850);
 
-    // 2. WebGL Renderer
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(0x030305, 1);
     this.container.appendChild(this.renderer.domElement);
 
-    // 3. Generate Entities
     this.entities = EntityGenerator.getAllEntities();
-
-    // 4. Create Particle Geometry & Shader Material
     this.createParticleSystem();
 
-    // 5. Setup Listeners
     window.addEventListener('resize', this.onWindowResize.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     window.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: true });
 
-    // Start loop
     this.animate();
   }
 
   createParticleSystem() {
     this.geometry = new THREE.BufferGeometry();
-
     const initial = this.entities[0];
 
-    // Current positions & colors
     const positions = new Float32Array(initial.positions);
     const colors = new Float32Array(initial.colors);
-
-    // Target positions & colors (initially identical)
     const targetPositions = new Float32Array(initial.positions);
     const targetColors = new Float32Array(initial.colors);
 
-    // Per-particle procedural variation attributes
     const randomSpeed = new Float32Array(this.count);
     const noiseOffset = new Float32Array(this.count);
 
     for (let i = 0; i < this.count; i++) {
-      randomSpeed[i] = 0.4 + Math.random() * 0.9; // staggered organic delay
+      randomSpeed[i] = 0.4 + Math.random() * 0.9;
       noiseOffset[i] = Math.random() * Math.PI * 2;
     }
 
@@ -104,7 +96,6 @@ class HorrorParticleEngine {
     this.geometry.setAttribute('aRandomSpeed', new THREE.BufferAttribute(randomSpeed, 1));
     this.geometry.setAttribute('aNoiseOffset', new THREE.BufferAttribute(noiseOffset, 1));
 
-    // Custom GLSL Shaders for 60-120 FPS GPU calculation
     this.material = new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
@@ -136,9 +127,7 @@ class HorrorParticleEngine {
         varying float vAlpha;
 
         void main() {
-          // 1. Organic Staggered Morph Interpolation (Astral-style per-particle delay)
           float localProgress = clamp((uMorphProgress * (1.0 + aRandomSpeed * 0.7)) - (aRandomSpeed * 0.35), 0.0, 1.0);
-          // Cubic ease in-out
           float ease = localProgress < 0.5 
             ? 4.0 * localProgress * localProgress * localProgress 
             : 1.0 - pow(-2.0 * localProgress + 2.0, 3.0) / 2.0;
@@ -146,21 +135,21 @@ class HorrorParticleEngine {
           vec3 basePos = mix(position, targetPosition, ease);
           vec3 baseCol = mix(aColor, targetColor, ease);
 
-          // 2. Organic Writhing / Breathing Pulse
+          // Living breath pulse
           float breath = sin(uTime * 2.2 + aNoiseOffset) * 4.5;
           basePos.y += breath;
           basePos.x += cos(uTime * 1.5 + aNoiseOffset) * 2.5;
 
-          // 3. Mouse 3D Tracking & Gaze Parallax
+          // 3D Mouse Parallax & Attraction
           vec3 toMouse = uMouse3D - basePos;
           float distToMouse = length(toMouse);
           if (distToMouse < 280.0) {
             float influence = (1.0 - distToMouse / 280.0);
             basePos += normalize(toMouse) * (influence * 35.0);
-            baseCol += vec3(0.3, 0.05, 0.05) * influence; // Crimson flare on hover proximity
+            baseCol += vec3(0.3, 0.05, 0.05) * influence;
           }
 
-          // 4. Violent Click Shockwave Explosion
+          // Click / Key Shockwave Explosion
           if (uShockwaveRadius > 0.0) {
             float distFromShock = length(basePos - uShockwaveCenter);
             float waveDelta = abs(distFromShock - uShockwaveRadius);
@@ -172,13 +161,14 @@ class HorrorParticleEngine {
             }
           }
 
-          // 5. Chromatic / Glitch Displacement Burst
+          // Chromatic / Glitch Displacement Burst
           if (uGlitchIntensity > 0.01) {
-            float glitchNoise = sin(basePos.y * 0.15 + uTime * 40.0);
-            if (abs(glitchNoise) > 0.6) {
-              basePos.x += sign(glitchNoise) * uGlitchIntensity * 95.0;
-              baseCol.r += 0.6 * uGlitchIntensity;
-              baseCol.b += 0.8 * uGlitchIntensity;
+            float glitchNoise = sin(basePos.y * 0.18 + uTime * 45.0);
+            if (abs(glitchNoise) > 0.5) {
+              basePos.x += sign(glitchNoise) * uGlitchIntensity * 120.0;
+              basePos.z += cos(glitchNoise * 5.0) * uGlitchIntensity * 80.0;
+              baseCol.r += 0.8 * uGlitchIntensity;
+              baseCol.b += 0.9 * uGlitchIntensity;
             }
           }
 
@@ -187,8 +177,6 @@ class HorrorParticleEngine {
 
           vec4 mvPosition = modelViewMatrix * vec4(basePos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
-
-          // Perspective particle sizing
           gl_PointSize = (uPointSize / -mvPosition.z) * (180.0 + sin(aNoiseOffset + uTime) * 25.0);
         }
       `,
@@ -197,15 +185,13 @@ class HorrorParticleEngine {
         varying float vAlpha;
 
         void main() {
-          // Circular glowing particle with soft falloff
           vec2 coord = gl_PointCoord - vec2(0.5);
           float dist = length(coord);
           if (dist > 0.5) discard;
 
-          // Hot intense center spark fading outward
           float intensity = pow(1.0 - (dist * 2.0), 1.8);
           vec3 finalColor = vColor * intensity;
-          finalColor += vec3(0.8) * pow(1.0 - (dist * 2.0), 5.0); // Intense core highlight
+          finalColor += vec3(0.8) * pow(1.0 - (dist * 2.0), 5.0);
 
           gl_FragColor = vec4(finalColor, vAlpha * intensity);
         }
@@ -219,9 +205,6 @@ class HorrorParticleEngine {
     this.scene.add(this.points);
   }
 
-  /**
-   * Morph to next or specific horror entity (supports rapid click interruption)
-   */
   morphToEntity(index = null) {
     if (index !== null) {
       this.currentEntityIndex = index % this.entities.length;
@@ -231,13 +214,11 @@ class HorrorParticleEngine {
 
     const currentTarget = this.entities[this.currentEntityIndex];
 
-    // Current positions attribute becomes the new starting positions
     const posAttr = this.geometry.attributes.position;
     const targetPosAttr = this.geometry.attributes.targetPosition;
     const colAttr = this.geometry.attributes.aColor;
     const targetColAttr = this.geometry.attributes.targetColor;
 
-    // Calculate current interpolated positions as the new starting baseline
     const currentProgress = this.material.uniforms.uMorphProgress.value;
     const rSpeed = this.geometry.attributes.aRandomSpeed.array;
 
@@ -249,7 +230,6 @@ class HorrorParticleEngine {
       posAttr.array[i] = posAttr.array[i] + (targetPosAttr.array[i] - posAttr.array[i]) * ease;
       colAttr.array[i] = colAttr.array[i] + (targetColAttr.array[i] - colAttr.array[i]) * ease;
 
-      // Assign new target positions and colors
       targetPosAttr.array[i] = currentTarget.positions[i];
       targetColAttr.array[i] = currentTarget.colors[i];
     }
@@ -259,7 +239,6 @@ class HorrorParticleEngine {
     targetPosAttr.needsUpdate = true;
     targetColAttr.needsUpdate = true;
 
-    // Reset morph progress
     this.morphProgress = 0.0;
     this.isMorphing = true;
     this.material.uniforms.uMorphProgress.value = 0.0;
@@ -268,9 +247,6 @@ class HorrorParticleEngine {
     return currentTarget;
   }
 
-  /**
-   * Trigger explosive shockwave at 3D raycasted cursor position
-   */
   triggerClickExplosion(screenX, screenY) {
     const ndcX = (screenX / window.innerWidth) * 2 - 1;
     const ndcY = -(screenY / window.innerHeight) * 2 + 1;
@@ -279,15 +255,49 @@ class HorrorParticleEngine {
     const targetPoint = new THREE.Vector3();
     this.raycaster.ray.intersectPlane(this.interactionPlane, targetPoint);
 
-    // Set shockwave origin
     this.material.uniforms.uShockwaveCenter.value.copy(targetPoint);
     this.material.uniforms.uShockwaveRadius.value = 10.0;
     this.material.uniforms.uShockwaveStrength.value = 1.0;
     this.shockwaveActive = true;
     this.shockwaveTime = 0.0;
 
-    // Trigger Screen Glitch flash
     this.glitchIntensity = 1.0;
+    const glitchOverlay = document.getElementById('glitch-overlay');
+    if (glitchOverlay) {
+      glitchOverlay.classList.remove('shockwave-flash');
+      void glitchOverlay.offsetWidth;
+      glitchOverlay.classList.add('shockwave-flash');
+    }
+  }
+
+  /**
+   * Scary Sudden Jumpscare & Violent Camera Lunge (Triggered on any Keypress)
+   */
+  triggerScaryJumpscare(intensity = 1.0) {
+    // 1. Violent camera lunge forward towards face
+    this.lungeZ = 340.0 * intensity;
+    this.shakeIntensity = 28.0 * intensity;
+
+    // 2. Maximum particle glitch fragmentation
+    this.glitchIntensity = 1.8 * intensity;
+
+    // 3. Central shockwave eruption
+    this.material.uniforms.uShockwaveCenter.value.set(
+      (Math.random() - 0.5) * 120,
+      (Math.random() - 0.5) * 100,
+      (Math.random() - 0.5) * 60
+    );
+    this.material.uniforms.uShockwaveRadius.value = 15.0;
+    this.material.uniforms.uShockwaveStrength.value = 1.4;
+    this.shockwaveActive = true;
+    this.shockwaveTime = 0.0;
+
+    // 4. Trigger body screen glitch animation
+    document.body.classList.remove('glitch-active');
+    void document.body.offsetWidth;
+    document.body.classList.add('glitch-active');
+
+    // 5. Glitch flash overlay
     const glitchOverlay = document.getElementById('glitch-overlay');
     if (glitchOverlay) {
       glitchOverlay.classList.remove('shockwave-flash');
@@ -300,12 +310,10 @@ class HorrorParticleEngine {
     this.targetMouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     this.targetMouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-    // Calculate 3D mouse point in world space for particle swarm tracking
     this.raycaster.setFromCamera(this.targetMouse, this.camera);
     this.raycaster.ray.intersectPlane(this.interactionPlane, this.mouse3D);
     this.material.uniforms.uMouse3D.value.copy(this.mouse3D);
 
-    // Audio hover proximity update
     const distToCenter = Math.sqrt(this.targetMouse.x * this.targetMouse.x + this.targetMouse.y * this.targetMouse.y);
     const proximity = Math.max(0, 1 - distToCenter);
     const speed = Math.abs(this.targetMouse.x - this.mouse.x) + Math.abs(this.targetMouse.y - this.mouse.y);
@@ -336,15 +344,31 @@ class HorrorParticleEngine {
 
     this.material.uniforms.uTime.value = elapsedTime;
 
-    // Smooth Astral-style camera parallax lerp
+    // Parallax
     this.mouse.x += (this.targetMouse.x - this.mouse.x) * 0.06;
     this.mouse.y += (this.targetMouse.y - this.mouse.y) * 0.06;
 
-    this.camera.position.x = this.mouse.x * 120.0;
-    this.camera.position.y = this.mouse.y * 90.0;
+    // Camera shake decay
+    let shakeX = 0, shakeY = 0;
+    if (this.shakeIntensity > 0.01) {
+      shakeX = (Math.random() - 0.5) * this.shakeIntensity;
+      shakeY = (Math.random() - 0.5) * this.shakeIntensity;
+      this.shakeIntensity -= delta * 35.0;
+      if (this.shakeIntensity < 0) this.shakeIntensity = 0;
+    }
+
+    // Camera lunge decay
+    if (this.lungeZ > 0.1) {
+      this.lungeZ -= delta * 280.0;
+      if (this.lungeZ < 0) this.lungeZ = 0;
+    }
+
+    this.camera.position.x = this.mouse.x * 120.0 + shakeX;
+    this.camera.position.y = this.mouse.y * 90.0 + shakeY;
+    this.camera.position.z = 850.0 - this.lungeZ;
     this.camera.lookAt(0, 0, 0);
 
-    // Smooth morph progress
+    // Morph progress
     if (this.isMorphing) {
       this.morphProgress += delta / this.morphDuration;
       if (this.morphProgress >= 1.0) {
@@ -363,7 +387,6 @@ class HorrorParticleEngine {
         this.material.uniforms.uShockwaveRadius.value = -100.0;
         this.material.uniforms.uShockwaveStrength.value = 0.0;
       } else {
-        // Expand outward rapidly from click point
         this.material.uniforms.uShockwaveRadius.value = progress * 950.0;
         this.material.uniforms.uShockwaveStrength.value = Math.pow(1.0 - progress, 2.0);
       }
@@ -371,11 +394,10 @@ class HorrorParticleEngine {
 
     // Glitch decay
     if (this.glitchIntensity > 0.001) {
-      this.glitchIntensity -= delta * 3.5;
+      this.glitchIntensity -= delta * 3.0;
       this.material.uniforms.uGlitchIntensity.value = Math.max(0, this.glitchIntensity);
     }
 
-    // Render 3D Scene
     this.renderer.render(this.scene, this.camera);
   }
 }

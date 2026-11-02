@@ -78,6 +78,38 @@ html, body {
   }
 }
 
+/* Violent Screen Glitch Burst on Keypress */
+body.glitch-active {
+  animation: screenGlitch 0.5s ease-in-out forwards;
+}
+
+@keyframes screenGlitch {
+  0% {
+    filter: invert(0.9) hue-rotate(180deg) saturate(3) contrast(2);
+    transform: translate(-6px, 4px) skewX(2deg);
+  }
+  15% {
+    filter: invert(0) hue-rotate(0deg) contrast(3);
+    transform: translate(8px, -5px) scale(1.02);
+  }
+  35% {
+    filter: invert(1) hue-rotate(90deg) saturate(4);
+    transform: translate(-10px, -2px) skewX(-3deg);
+  }
+  55% {
+    filter: invert(0) hue-rotate(270deg) contrast(2.5);
+    transform: translate(5px, 6px);
+  }
+  75% {
+    filter: invert(0.3) hue-rotate(0deg);
+    transform: translate(-3px, -3px);
+  }
+  100% {
+    filter: invert(0) hue-rotate(0deg) contrast(1);
+    transform: translate(0, 0) scale(1);
+  }
+}
+
 /* CRT Scanline Subtlety */
 body::after {
   content: " ";
