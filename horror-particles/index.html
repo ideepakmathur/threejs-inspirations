@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ASTRAL HORROR // Volumetric Particle Nightmares</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☠</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="dark-void">
+  <div id="canvas-container"></div>
+  <div id="glitch-overlay"></div>
+  <div id="vignette-overlay"></div>
+
+  <!-- Audio Start Modal -->
+  <div id="audio-modal" class="modal-visible">
+    <div class="modal-card">
+      <div class="sigil-icon">☠</div>
+      <h1 class="glitch-text" data-text="ASTRAL VOID">ASTRAL VOID</h1>
+      <p class="subtitle">12 Volumetric Nightmare Characters & Synthesized Audio Horror</p>
+      <p class="warning-text">⚠️ Binaural sub-bass drones, screen glitch shockwaves, and procedural stingers.</p>
+      <button id="btn-enter" class="creepy-btn">
+        <span class="btn-glow"></span>
+        ENTER THE NIGHTMARE
+      </button>
+      <div class="audio-hint">[ Click anywhere or hover to summon horrors ]</div>
+    </div>
+  </div>
+
+  <!-- HUD Interface -->
+  <div id="hud">
+    <header class="hud-header">
+      <div class="brand">
+        <span class="pulse-dot"></span>
+        <span class="title">ENTITY // <span id="current-entity-name" class="highlight-name">THE SMILING WENDIGO</span></span>
+      </div>
+      <div class="header-controls">
+        <!-- Sound Atmosphere Selector -->
+        <select id="audio-track-select" class="hud-select" title="Change Ambient Music">
+          <option value="cavern">Track: Cavern of Damned</option>
+          <option value="catacombs">Track: The Catacombs</option>
+          <option value="abyssal">Track: Abyssal Trench</option>
+          <option value="cyber">Track: Cyber Poltergeist</option>
+        </select>
+        <button id="btn-sound" class="hud-icon-btn" title="Toggle Dread Audio">🔊</button>
+        <button id="btn-fullscreen" class="hud-icon-btn" title="Toggle Fullscreen">⛶</button>
+      </div>
+    </header>
+
+    <footer class="hud-footer">
+      <div class="instructions">
+        <span class="key-hint">CLICK ANYWHERE</span> to blast particles & morph horror 
+        <span class="separator">•</span>
+        <span class="key-hint">HOVER / MOVE</span> to track eyes & distort void
+      </div>
+      <div class="entity-pills" id="entity-pills"></div>
+    </footer>
+
+    <div class="stats-panel">
+      <div class="stat-item">
+        <span class="label">PARTICLES</span>
+        <span class="value" id="particle-count-display">55,000</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">CHARACTERS</span>
+        <span class="value">12 ENTITIES</span>
+      </div>
+      <div class="stat-item">
+        <span class="label">PULSE RATE</span>
+        <span class="value" id="pulse-display">TERROR</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="custom-cursor">
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="entities.js"></script>
+  <script src="engine.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
